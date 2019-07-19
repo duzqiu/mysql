@@ -5,72 +5,86 @@ import pymysql
 class ConMysql(object):
 
     def __init__(self,host,user,passwd,database):
-        self.conn = pymysql.connect(host=host,user=user,passwd=passwd,db=database,charset='utf8')
+        self.host = host
+        self.user = user
+        self.passwd = passwd
+        self.database = database
+
+    def connect_mysql(self):
+        self.conn = pymysql.connect(host=self.host,user=self.user,passwd=self.passwd,db=self.database,charset='utf8')
         self.cursor = self.conn.cursor()
+        return self.cursor
 
     #创建数据表
     def create_table(self,tablename,sqlstate):
+        self.connect_mysql()
         try:
             self.cursor.execute("DROP TABLE IF EXISTS %s" % tablename)
             self.cursor.execute(sqlstate)
-            return "执行成功"
+            return "创建数据表成功"
         except:
-            return "执行失败"
+            return "创建数据表失败"
 
-    #增加数据，删除数据，更新数据
-    def operation_data(self,sqlstate):
+    #增加数据
+    def add_data(self,sqlstate):
+        self.__operation(sqlstate)
+
+    #删除数据
+    def delete_data(self,sqlstate):
+        self.__operation(sqlstate)
+
+    #更新数据
+    def update_data(self,sqlstate):
+        self.__operation(sqlstate)
+
+    #增加数据，删除数据，更新数据模型
+    def __operation(self,sqlstate):
+        self.connect_mysql()
         try:
             self.cursor.execute(sqlstate)
             # 提交到数据库执行
             self.conn.commit()
-            return "执行成功"
         except:
             # 如果发生错误则回滚
             self.conn.rollback()
-            return "执行失败，数据回滚"
 
-    #查询数据
-    def select_data(self,sqlstate,volume=0):
-        # 执行SQL语句
-        self.cursor.execute(sqlstate)
-        if volume == 0:
-            datas = []
-            try:
-                # 获取所有记录列表
-                results = self.cursor.fetchall()
-                for row in results:
-                    datalist = []
-                    for num in range(0,len(row)):
-                        datalist.append(row[num])
-                    #打印结果
-                    datas.append(datalist)
-                return datas
-            except:
-                return "错误,无法提取数据"
-        elif volume == 1:
+    #查询单条数据
+    def select_one(self,sqlstate):
+        self.connect_mysql()
+        try:
+            self.cursor.execute(sqlstate)
             results = self.cursor.fetchone()
             return results
-        else:
-            return "错误,volume的值只能为1或者0"
+        except:
+            return "错误,无法提取数据"
+
+    #查询多条数据
+    def select_all(self,sqlstate):
+        self.connect_mysql()
+        try:
+            self.cursor.execute(sqlstate)
+            # 获取所有记录列表
+            results = self.cursor.fetchall()
+            datalist = []
+            for num in range(0, len(results)):
+                datalist.append(results[num])
+            return datalist
+        except:
+            return "错误,无法提取数据"
+
     #关闭连接
-    def close_conn(self):
+    def close_con(self):
+        self.cursor.close()
         self.conn.close()
-        return "连接关闭"
 
 
 if __name__ == '__main__':
     host = '127.0.0.1'
     user = 'root'
-    passwd = 'root'
-    database = 'testmysql'
+    passwd = '123456'
+    database = 'news'
     conmysql = ConMysql(host,user,passwd,database)
-    # sql = """SELECT * FROM EMPLOYEE  WHERE INCOME > %s""" % (1000)
-    # print(conmysql.select_data(sql,1))
-    sql = """CREATE TABLE TEST2 (
-             FIRST_NAME  CHAR(20) NOT NULL,
-             LAST_NAME  CHAR(20),
-             AGE INT,  
-             SEX CHAR(1),
-             INCOME FLOAT )"""
-    print(conmysql.create_table('TEST2', sql))
-    conmysql.close_conn()
+    # sql = """INSERT INTO TEST2(FIRST_NAME,LAST_NAME,AGE,SEX,INCOME) VALUES ('哈哈哈','呵呵呵',98,'男','上海')"""
+    sql = """select * from TEST2 where age=100"""
+    print(conmysql.select_one(sql))
+    conmysql.close_con()
